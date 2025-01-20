@@ -1,3 +1,5 @@
+import datetime
+import json
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -10,6 +12,9 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
 import logging
+from fastapi_utils.tasks import repeat_every
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 # Load environment variables
 load_dotenv()
@@ -25,6 +30,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
 # Email sender function
 def send_email(subject: str, body: str, to_email: str):
@@ -94,6 +100,22 @@ def check_url_status(url: str) -> dict:
 class MonitorResponse(BaseModel):
     results: list
     offline_pages: list
+    
+def send_to_bucket(bucket_name, s3_file_name, results):
+    s3 = boto3.client('s3')
+    bucket_name = os.getenv("S3_BUCKET_NAME")
+    s3_file_name = "monitoring_results.json"
+
+    try:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=s3_file_name,
+            Body=json.dumps(results),
+            ContentType='application/json'
+        )
+        logger.info(f"Results stored in S3 bucket {bucket_name} as {s3_file_name}")
+    except NoCredentialsError:
+        logger.error("Credentials not available for S3")
 
 @app.get("/monitor", response_model=MonitorResponse)
 def monitor_website(
@@ -106,6 +128,10 @@ def monitor_website(
     logger.info(f"Found URLs: {urls}")
 
     results = [check_url_status(url) for url in urls]
+    
+    date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    send_to_bucket(S3_BUCKET_NAME, f"{base_url}/{date_now}.json", results)
+    
     offline_pages = [res for res in results if res["status"] == "offline"]
 
     if offline_pages:
@@ -118,3 +144,30 @@ def monitor_website(
         send_email(subject, body, DEFAULT_EMAIL)
 
     return JSONResponse(content={"results": results, "offline_pages": offline_pages})
+
+@app.on_event("startup")
+@repeat_every(seconds=60)
+def scheduled_monitoring():
+    base_url = "https://www.urbiaparques.com.br"
+    max_depth = 2
+    logger.info(f"Starting scheduled site scraping: {base_url}")
+    urls = fetch_urls_from_site(base_url, max_depth)
+
+    logger.info(f"Found URLs: {urls}")
+
+    results = [check_url_status(url) for url in urls]
+    
+    
+    date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    send_to_bucket(S3_BUCKET_NAME, f"urbiaparques/{date_now}.json", results)
+
+    offline_pages = [res for res in results if res["status"] == "offline"]
+
+    if offline_pages:
+        logger.warning(f"Offline pages: {offline_pages}")
+        offline_pages_list = "\n".join(
+            [f"{page['url']} - {page.get('error', 'Code: ' + str(page['code']))}" for page in offline_pages]
+        )
+        subject = "⚠️ Alert: Offline Pages Detected"
+        body = f"The following pages are offline:\n\n{offline_pages_list}"
+        send_email(subject, body, DEFAULT_EMAIL)

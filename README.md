@@ -13,7 +13,6 @@ This is a FastAPI-based application designed to monitor the status of web pages 
 ## Requirements
 
 - Python 3.8 or higher
-- Flask
 - BeautifulSoup (bs4)
 - Requests
 - Python-dotenv
@@ -27,7 +26,7 @@ python -m venv venv
 source venv/bin/activate    # On Windows: venv\Scripts\activate
 ```
 
-2. Install Dependencies
+1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```

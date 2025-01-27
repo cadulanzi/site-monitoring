@@ -1,6 +1,6 @@
 services:
   app:
-    image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/${REPOSITORY_NAME}:${TAG}
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${REPOSITORY_NAME}:${CCO_API_VERSION}
     ports:
       - "8000:8000"
     environment:

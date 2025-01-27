@@ -114,6 +114,12 @@ def send_to_bucket(bucket_name, s3_file_name, results):
         logger.info(f"Results stored in S3 bucket {bucket_name} as {s3_file_name}")
     except NoCredentialsError:
         logger.error("Credentials not available for S3")
+        
+def clean_url(base_url):
+    base_path = urlparse(base_url).hostname
+    base_path = base_path.replace("www.", "")
+    base_path = base_path.split('.')[0]
+    return base_path
 
 @app.get("/monitor", response_model=MonitorResponse)
 def monitor_website(
@@ -121,6 +127,8 @@ def monitor_website(
     max_depth: int = Query(2, description="Maximum scraping depth"),
 ):
     logger.info(f"Starting site scraping: {base_url}")
+    # remover www, http, https e .com.br
+    base_path = clean_url(base_url)
     urls = fetch_urls_from_site(base_url, max_depth)
 
     logger.info(f"Found URLs: {urls}")
@@ -131,7 +139,7 @@ def monitor_website(
     day = datetime.datetime.now().strftime("%d")
     year = datetime.datetime.now().strftime("%Y")
     month = datetime.datetime.now().strftime("%m")
-    send_to_bucket(S3_BUCKET_NAME, f"{base_url}/{year}/{month}/{day}/{hour}.json", results)
+    send_to_bucket(S3_BUCKET_NAME, f"{base_path}/{year}/{month}/{day}/{hour}.json", results)
     
     offline_pages = [res for res in results if res["status"] == "offline"]
 

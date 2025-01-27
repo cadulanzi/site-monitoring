@@ -156,7 +156,7 @@ def scheduled_monitoring():
     results = [check_url_status(url) for url in urls]
     
     hour = datetime.datetime.now().strftime("%H")
-    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    day = datetime.datetime.now().strftime("%d")
     year = datetime.datetime.now().strftime("%Y")
     month = datetime.datetime.now().strftime("%m")
     send_to_bucket(S3_BUCKET_NAME, f"urbiaparques/{year}/{month}/{day}/{hour}.json", results)

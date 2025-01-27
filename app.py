@@ -104,8 +104,6 @@ class MonitorResponse(BaseModel):
 def send_to_bucket(bucket_name, s3_file_name, results):
     s3 = boto3.client('s3')
     bucket_name = os.getenv("S3_BUCKET_NAME")
-    s3_file_name = "monitoring_results.json"
-
     try:
         s3.put_object(
             Bucket=bucket_name,
@@ -157,9 +155,11 @@ def scheduled_monitoring():
 
     results = [check_url_status(url) for url in urls]
     
-    
-    date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    send_to_bucket(S3_BUCKET_NAME, f"urbiaparques/{date_now}.json", results)
+    hour = datetime.datetime.now().strftime("%H")
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    year = datetime.datetime.now().strftime("%Y")
+    month = datetime.datetime.now().strftime("%m")
+    send_to_bucket(S3_BUCKET_NAME, f"urbiaparques/{year}/{month}/{day}/{hour}.json", results)
 
     offline_pages = [res for res in results if res["status"] == "offline"]
 

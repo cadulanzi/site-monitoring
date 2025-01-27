@@ -9,7 +9,7 @@ load_dotenv()
 AWS_REGION = os.getenv("AWS_REGION")
 REPOSITORY_NAME = os.getenv("REPOSITORY_NAME")
 IMAGE_TAG = os.getenv("IMAGE_TAG")
-ACCOUNT_ID = os.getenv("ACCOUNT_ID")
+ACCOUNT_ID = os.getenv("AWS_ACCOUNT_ID")
 
 # Verificar se todas as variáveis essenciais estão definidas
 if not all([AWS_REGION, REPOSITORY_NAME, IMAGE_TAG, ACCOUNT_ID]):
@@ -45,7 +45,7 @@ def main():
             exit(1)
 
     print("Building Docker image...")
-    run_command(f"docker build -t {REPOSITORY_NAME}:{IMAGE_TAG} ..")  
+    run_command(f"docker build -t {REPOSITORY_NAME}:{IMAGE_TAG} .")  
 
     print("Tagging Docker image...")
     ecr_image_uri = f"{ACCOUNT_ID}.dkr.ecr.{AWS_REGION}.amazonaws.com/{REPOSITORY_NAME}:{IMAGE_TAG}"

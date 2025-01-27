@@ -127,8 +127,11 @@ def monitor_website(
 
     results = [check_url_status(url) for url in urls]
     
-    date_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    send_to_bucket(S3_BUCKET_NAME, f"{base_url}/{date_now}.json", results)
+    hour = datetime.datetime.now().strftime("%H")
+    day = datetime.datetime.now().strftime("%d")
+    year = datetime.datetime.now().strftime("%Y")
+    month = datetime.datetime.now().strftime("%m")
+    send_to_bucket(S3_BUCKET_NAME, f"{base_url}/{year}/{month}/{day}/{hour}.json", results)
     
     offline_pages = [res for res in results if res["status"] == "offline"]
 
